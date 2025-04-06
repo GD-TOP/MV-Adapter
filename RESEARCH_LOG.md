@@ -25,7 +25,7 @@
 - ❗ 기본 설정으로는 실행 어려움
 
 ### ✔️ 해결 방안
-
+- `SD 2.1 사용 후 품질 차이 비교`
 - `batch_size` 줄이기 (예: `1`)
 - `fp16` (half precision) 설정 사용
 - 필요 시 `gradient checkpointing`, `memory-efficient attention` 사용 고려
