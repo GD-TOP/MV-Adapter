@@ -130,21 +130,33 @@ def run_pipeline(
     device="cuda",
 ):
     # Prepare cameras
+    azimuth_deg = np.linspace(0, 360, num_views, endpoint=False).tolist()
+    elevation_deg = [0] * num_views
+    distance = [1.8] * num_views
+
     cameras = get_orthogonal_camera(
-        elevation_deg=[0, 0, 0, 0, 0, 0],
-        distance=[1.8] * num_views,
+        elevation_deg=elevation_deg,
+        distance=distance,
         left=-0.55,
         right=0.55,
         bottom=-0.55,
         top=0.55,
-        azimuth_deg=[x - 90 for x in [0, 45, 90, 180, 270, 315]],
+        azimuth_deg=[x - 90 for x in azimuth_deg],
         device=device,
     )
+    print("azimuth_deg:", azimuth_deg)
+    print("num_views:", num_views)
+    print("camera c2w shape:", cameras.c2w.shape)
+
+
 
     plucker_embeds = get_plucker_embeds_from_cameras_ortho(
         cameras.c2w, [1.1] * num_views, width
     )
+        # Make sure control_images shape is [B, C, H, W]
     control_images = ((plucker_embeds + 1.0) / 2.0).clamp(0, 1)
+    control_images = control_images.to(device)
+    print(control_images.shape)
 
     # Prepare image
     reference_image = Image.open(image) if isinstance(image, str) else image
@@ -188,7 +200,7 @@ if __name__ == "__main__":
     parser.add_argument("--scheduler", type=str, default=None)
     parser.add_argument("--lora_model", type=str, default=None)
     parser.add_argument("--adapter_path", type=str, default="huanngzh/mv-adapter")
-    parser.add_argument("--num_views", type=int, default=6)
+    parser.add_argument("--num_views", type=int, default=20)
     # Device
     parser.add_argument("--device", type=str, default="cuda")
     # Inference
@@ -253,5 +265,10 @@ if __name__ == "__main__":
         device=args.device,
         remove_bg_fn=remove_bg_fn,
     )
-    make_image_grid(images, rows=1).save(args.output)
+    make_image_grid(images, rows=4).save(args.output)
     reference_image.save(args.output.rsplit(".", 1)[0] + "_reference.png")
+
+    # Save each view image separately
+    # for idx, img in enumerate(images):
+    #     print(f"Image {idx} mean pixel value: {np.array(img).mean():.2f}")
+    #     img.save(f"{args.output.rsplit('.', 1)[0]}_view{idx:02d}.png")
